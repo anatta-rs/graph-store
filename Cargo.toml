@@ -1,5 +1,5 @@
 [package]
-name = "graph-server"
+name = "graph-store"
 version = "0.1.0"
 edition = "2024"
 description = "HTTP server for any polystore::GraphStore implementation. Backends: neo4j (default), in-memory."
@@ -49,6 +49,6 @@ missing_errors_doc = "allow"
 missing_panics_doc = "allow"
 
 [[bin]]
-name = "graph-server"
+name = "graph-store"
 path = "src/bin/graph-server.rs"
 required-features = ["neo4j-backend"]
