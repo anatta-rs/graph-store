@@ -20,6 +20,7 @@ pub enum GraphError {
     NotFound(String),
 }
 
+#[cfg(feature = "neo4j-backend")]
 impl From<neo4rs::Error> for GraphError {
     fn from(err: neo4rs::Error) -> Self {
         Self::Backend(err.to_string())
