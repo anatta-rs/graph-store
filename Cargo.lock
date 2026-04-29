@@ -458,7 +458,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "graph-server"
+name = "graph-store"
 version = "0.1.0"
 dependencies = [
  "async-trait",

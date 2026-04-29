@@ -9,7 +9,7 @@ use axum::{
     routing::{get, post},
 };
 use clap::Parser;
-use graph_server::{GraphError, GraphStore, Neo4jStore};
+use graph_store::{GraphError, GraphStore, Neo4jStore};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::sync::Arc;
