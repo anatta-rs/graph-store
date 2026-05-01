@@ -15,6 +15,24 @@ enum ParamValue {
     Bool(bool),
 }
 
+/// Convert a JSON value to a [`ParamValue`] suitable for Bolt binding.
+///
+/// Returns `None` for JSON `null`, arrays, and objects — call sites
+/// must skip both the `SET` clause and the param when this returns
+/// `None`, otherwise Neo4j errors with `Expected parameter(s): p_X`.
+fn json_to_param_value(value: serde_json::Value) -> Option<ParamValue> {
+    match value {
+        serde_json::Value::String(s) => Some(ParamValue::Str(s)),
+        serde_json::Value::Number(n) => n
+            .as_i64()
+            .map(ParamValue::Int)
+            .or_else(|| n.as_f64().map(ParamValue::Float)),
+        serde_json::Value::Bool(b) => Some(ParamValue::Bool(b)),
+        // Null / Array / Object are not bindable as scalar params.
+        _ => None,
+    }
+}
+
 /// [`GraphStore`] backed by a `Neo4j` instance via Bolt protocol.
 pub struct Neo4jStore {
     graph: Graph,
@@ -77,22 +95,10 @@ impl GraphStore for Neo4jStore {
         if let serde_json::Value::Object(map) = properties {
             for (key, value) in map {
                 let param_name = format!("p_{key}");
-                set_clauses.push(format!("n.{key} = ${param_name}"));
-                match value {
-                    serde_json::Value::String(s) => {
-                        params.push((param_name, ParamValue::Str(s)));
-                    }
-                    serde_json::Value::Number(n) => {
-                        if let Some(i) = n.as_i64() {
-                            params.push((param_name, ParamValue::Int(i)));
-                        } else if let Some(f) = n.as_f64() {
-                            params.push((param_name, ParamValue::Float(f)));
-                        }
-                    }
-                    serde_json::Value::Bool(b) => {
-                        params.push((param_name, ParamValue::Bool(b)));
-                    }
-                    _ => {}
+                let pv = json_to_param_value(value);
+                if let Some(pv) = pv {
+                    set_clauses.push(format!("n.{key} = ${param_name}"));
+                    params.push((param_name, pv));
                 }
             }
         }
@@ -218,22 +224,9 @@ impl GraphStore for Neo4jStore {
 
         for (key, value) in props {
             let param_name = format!("p_{key}");
-            set_clauses.push(format!("r.{key} = ${param_name}"));
-            match value {
-                serde_json::Value::String(s) => {
-                    params.push((param_name, ParamValue::Str(s)));
-                }
-                serde_json::Value::Number(n) => {
-                    if let Some(i) = n.as_i64() {
-                        params.push((param_name, ParamValue::Int(i)));
-                    } else if let Some(f) = n.as_f64() {
-                        params.push((param_name, ParamValue::Float(f)));
-                    }
-                }
-                serde_json::Value::Bool(b) => {
-                    params.push((param_name, ParamValue::Bool(b)));
-                }
-                _ => {}
+            if let Some(pv) = json_to_param_value(value) {
+                set_clauses.push(format!("r.{key} = ${param_name}"));
+                params.push((param_name, pv));
             }
         }
 
@@ -291,22 +284,9 @@ impl GraphStore for Neo4jStore {
 
         for (key, value) in props {
             let param_name = format!("p_{key}");
-            set_clauses.push(format!("r.{key} = ${param_name}"));
-            match value {
-                serde_json::Value::String(s) => {
-                    params.push((param_name, ParamValue::Str(s)));
-                }
-                serde_json::Value::Number(n) => {
-                    if let Some(i) = n.as_i64() {
-                        params.push((param_name, ParamValue::Int(i)));
-                    } else if let Some(f) = n.as_f64() {
-                        params.push((param_name, ParamValue::Float(f)));
-                    }
-                }
-                serde_json::Value::Bool(b) => {
-                    params.push((param_name, ParamValue::Bool(b)));
-                }
-                _ => {}
+            if let Some(pv) = json_to_param_value(value) {
+                set_clauses.push(format!("r.{key} = ${param_name}"));
+                params.push((param_name, pv));
             }
         }
 
