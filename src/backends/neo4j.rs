@@ -109,7 +109,12 @@ impl GraphStore for Neo4jStore {
             format!(" SET {}", set_clauses.join(", "))
         };
 
-        let cypher = format!("CREATE (n:{label_str} {{id: $id}}){set_str}");
+        // MERGE (not CREATE) so create_node is idempotent on `id`. Without it,
+        // re-projecting the same artifact bundle creates parallel duplicate
+        // nodes — every consumer that ships its own diff/upsert layer (e.g.
+        // mermaid-graph) silently breaks. SET runs whether MERGE matched or
+        // created, so property updates are applied either way.
+        let cypher = format!("MERGE (n:{label_str} {{id: $id}}){set_str}");
         let mut q = query(&cypher).param("id", id.to_string());
 
         for (name, value) in params {
